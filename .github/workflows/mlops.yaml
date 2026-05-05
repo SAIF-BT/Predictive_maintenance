@@ -7,6 +7,7 @@ on:
       - 'data/**'
       - 'src/**'
       - 'params.yaml'
+      - '.github/workflows/mlops.yaml'
 
 jobs:
   train-and-deploy:
@@ -15,15 +16,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0 # Important for pushing changes back to git
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+          cache: 'pip' # Speeds up future runs
 
-      - name: Install DVC & Dependencies
+      - name: Install All Dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install dvc dvc-s3 xgboost pandas scikit-learn matplotlib plotly pyyaml kaggle
 
       - name: Configure DVC Remote
@@ -37,26 +40,28 @@ jobs:
 
       - name: Pull Data from DagsHub
         run: |
+          # This brings in the data you already uploaded, 
+          # so 'dvc repro' won't feel the need to run 'ingest' (Kaggle)
           dvc pull -r origin
 
       - name: Execute Pipeline (dvc repro)
         run: |
-          # We use --pull to ensure it uses existing data from DagsHub 
-          # instead of trying to run 'ingest' (which needs Kaggle keys)
+          # DVC is smart: if it sees the data from 'dvc pull', 
+          # it will skip 'ingest' and move to 'preprocess'
           dvc repro
 
       - name: Push Updated Model & Metrics
         env:
           dvc_token: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          # Push data/models to DagsHub
+          # Push any newly trained model to DagsHub
           dvc push -r origin
           
-          # Push the updated dvc.lock and metrics back to GitHub
+          # Push the updated dvc.lock back to GitHub
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git add dvc.lock models/metrics.json || echo "No changes to lock/metrics"
+          git add dvc.lock models/metrics.json || echo "No changes to commit"
           
-          # [skip ci] prevents the action from triggering itself in an infinite loop
+          # [skip ci] is mandatory to avoid infinite loops!
           git commit -m "🚀 Automated Model Update [skip ci]" || echo "No changes to commit"
           git push origin main
