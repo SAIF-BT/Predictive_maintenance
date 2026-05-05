@@ -1,0 +1,46 @@
+name: Full-MLOps-Pipeline
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'data/**'  # Trigger only when data files change
+      - 'src/**'   # Or when code changes
+jobs:
+  train-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install DVC & Dependencies
+        run: |
+          pip install dvc[s3] xgboost pandas scikit-learn matplotlib plotly pyyaml
+
+      - name: Pull Data from DagsHub
+        env:
+          dvc_token: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          dvc remote add origin https://dagshub.com/SAIF-BT/Predictive_maintenance.dvc || true
+          dvc remote modify origin --local auth basic
+          dvc remote modify origin --local user SAIF-BT
+          dvc remote modify origin --local password $dvc_token
+          dvc pull -r origin
+
+      - name: Execute Pipeline (dvc repro)
+        run: dvc repro
+
+      - name: Push Updated Model & Metrics
+        env:
+          dvc_token: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          dvc push -r origin
+          git config --global user.name "GitHub Action"
+          git config --global user.email "action@github.com"
+          git add dvc.lock models/metrics.json
+          git commit -m "Automated Model Update [skip ci]" || echo "No changes to commit"
+          git push
