@@ -1,27 +1,25 @@
 import pandas as pd
-import numpy as np
 import os
+import yaml
 
-def generate_features(file_number="FD001"):
-    # Ensure we use absolute paths to avoid PowerShell/DVC confusion
-    project_root = os.getcwd()
-    input_file = os.path.join(project_root, 'data', 'processed', f'train_{file_number}_processed.csv')
-    output_file = os.path.join(project_root, 'data', 'processed', f'train_{file_number}_features.csv')
+def create_features():
+    with open("params.yaml", "r") as f:
+        params = yaml.safe_load(f)
+    dataset = params['data']['dataset']
     
-    if not os.path.exists(input_file):
-        print(f"❌ Input file not found: {input_file}")
-        return
-
-    df = pd.read_csv(input_file)
-    sensor_cols = [col for col in df.columns if col.startswith('s_')]
+    input_path = f'data/processed/train_{dataset}_processed.csv'
+    df = pd.read_csv(input_path)
     
-    window = 10
+    sensor_cols = [f's_{i}' for i in range(1, 22)]
+    
+    # Calculate rolling metrics
     for col in sensor_cols:
-        df[f'{col}_mean'] = df.groupby('unit_nr')[col].transform(lambda x: x.rolling(window=window, min_periods=1).mean())
-        df[f'{col}_std'] = df.groupby('unit_nr')[col].transform(lambda x: x.rolling(window=window, min_periods=1).std().fillna(0))
+        df[f'{col}_mean'] = df.groupby('unit_nr')[col].transform(lambda x: x.rolling(window=10, min_periods=1).mean())
+        df[f'{col}_std'] = df.groupby('unit_nr')[col].transform(lambda x: x.rolling(window=10, min_periods=1).std().fillna(0))
 
-    df.to_csv(output_file, index=False)
-    print(f"✅ Features generated: {output_file}")
+    output_path = f'data/processed/train_{dataset}_features.csv'
+    df.to_csv(output_path, index=False)
+    print(f"✨ Features generated for {dataset}")
 
 if __name__ == "__main__":
-    generate_features()
+    create_features()

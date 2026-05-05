@@ -16,49 +16,55 @@ stages:
   preprocess:
     cmd: python src/preprocess.py
     deps:
-    - path: data/raw/
+    - path: data/raw/CMaps/train_FD002.txt
       hash: md5
-      md5: 60d34e0ac98f99cc633e5a13ba4dcbc0.dir
-      size: 45350831
-      nfiles: 15
+      md5: b6eaab2a6b589e5e41d43ca2f99e379b
+      size: 9082480
     - path: src/preprocess.py
       hash: md5
-      md5: 493b3a9d5f8aef5a33cfba71be364f56
-      size: 1922
+      md5: eb24e3211221ccc2fe97033102809946
+      size: 2063
+    params:
+      params.yaml:
+        data.dataset: FD002
     outs:
-    - path: data/processed/train_FD001_processed.csv
+    - path: data/processed/train_FD002_processed.csv
       hash: md5
-      md5: 65f9670848e3dd6fb3fa677f3dc77aa0
-      size: 3488163
+      md5: 058ebdf549416220a4e3393dcd4dff58
+      size: 22643536
   features:
     cmd: python src/features.py
     deps:
-    - path: data/processed/train_FD001_processed.csv
+    - path: data/processed/train_FD002_processed.csv
       hash: md5
-      md5: 65f9670848e3dd6fb3fa677f3dc77aa0
-      size: 3488163
+      md5: 058ebdf549416220a4e3393dcd4dff58
+      size: 22643536
     - path: src/features.py
       hash: md5
-      md5: ed098750f0f077ab0a450dacd65db340
-      size: 1093
+      md5: b51f0821fc2566ececa1d39b28a1205e
+      size: 881
+    params:
+      params.yaml:
+        data.dataset: FD002
     outs:
-    - path: data/processed/train_FD001_features.csv
+    - path: data/processed/train_FD002_features.csv
       hash: md5
-      md5: 682288358a000a7afdf82c4fbb18f2fc
-      size: 13729012
+      md5: b41f33941b6aaa2156b39d37c2bc5ee2
+      size: 65031522
   train:
     cmd: python src/train.py
     deps:
-    - path: data/processed/train_FD001_features.csv
+    - path: data/processed/train_FD002_features.csv
       hash: md5
-      md5: 682288358a000a7afdf82c4fbb18f2fc
-      size: 13729012
+      md5: b41f33941b6aaa2156b39d37c2bc5ee2
+      size: 65031522
     - path: src/train.py
       hash: md5
-      md5: 2be310825c60abf896def301c4c5320d
-      size: 1893
+      md5: 83d36eedab2112218559d33929a4bf15
+      size: 2233
     params:
       params.yaml:
+        data.dataset: FD002
         train:
           n_estimators: 200
           learning_rate: 0.05
@@ -67,25 +73,29 @@ stages:
     outs:
     - path: metrics.json
       hash: md5
-      md5: 373da040b42c3b871db9249df00c5c5b
+      md5: 1daff3dfa654baf9af24726d345b56e5
       size: 55
     - path: models/model_xgb.json
       hash: md5
-      md5: 25e5f2577da4b085b5f19bb5e1ef8b7b
-      size: 1321294
+      md5: d84718eeacb08143c8b1e00943cdfc06
+      size: 1426429
   visualize:
     cmd: python src/visualization.py
     deps:
     - path: models/model_xgb.json
       hash: md5
-      md5: 25e5f2577da4b085b5f19bb5e1ef8b7b
-      size: 1321294
+      md5: d84718eeacb08143c8b1e00943cdfc06
+      size: 1426429
     - path: src/visualization.py
       hash: md5
-      md5: 2644010f798a7b9b004935aba04efb15
-      size: 1256
+      md5: c406ed13160cda3738b2625647a94482
+      size: 2199
     outs:
-    - path: plots/engine_81_prediction.png
+    - path: plots/engine_prediction.png
       hash: md5
-      md5: 05edf1cfaf5130545a67d58a35021fb9
-      size: 52528
+      md5: 845872e00978f5f71e4af4d8a84fc25f
+      size: 39328
+    - path: plots/feature_importance.png
+      hash: md5
+      md5: adce5963b58f618cbd92ffd2b342844c
+      size: 29652

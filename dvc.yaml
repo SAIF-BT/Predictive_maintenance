@@ -8,21 +8,25 @@ stages:
   preprocess:
     cmd: python src/preprocess.py
     deps:
-    - data/raw/
+    - data/raw/CMaps/train_FD002.txt
     - src/preprocess.py
     outs:
-    - data/processed/train_FD001_processed.csv
+    - data/processed/train_FD002_processed.csv
+    params:
+    - data.dataset
   features:
     cmd: python src/features.py
     deps:
-    - data/processed/train_FD001_processed.csv
+    - data/processed/train_FD002_processed.csv
     - src/features.py
     outs:
-    - data/processed/train_FD001_features.csv
+    - data/processed/train_FD002_features.csv
+    params:
+    - data.dataset
   train:
     cmd: python src/train.py
     deps:
-    - data/processed/train_FD001_features.csv
+    - data/processed/train_FD002_features.csv
     - src/train.py
     outs:
     - models/model_xgb.json
@@ -30,6 +34,7 @@ stages:
     - metrics.json:
         cache: false
     params:
+    - data.dataset
     - train
   visualize:
     cmd: python src/visualization.py
@@ -37,4 +42,5 @@ stages:
     - models/model_xgb.json
     - src/visualization.py
     outs:
-    - plots/engine_81_prediction.png
+    - plots/engine_prediction.png
+    - plots/feature_importance.png
