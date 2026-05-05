@@ -7,7 +7,6 @@ on:
       - 'data/**'
       - 'src/**'
       - 'params.yaml'
-      - '.github/workflows/mlops.yaml'
 
 jobs:
   train-and-deploy:
@@ -22,7 +21,6 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-          cache: 'pip' # Speeds up future runs
 
       - name: Install All Dependencies
         run: |
@@ -40,28 +38,20 @@ jobs:
 
       - name: Pull Data from DagsHub
         run: |
-          # This brings in the data you already uploaded, 
-          # so 'dvc repro' won't feel the need to run 'ingest' (Kaggle)
           dvc pull -r origin
 
       - name: Execute Pipeline (dvc repro)
         run: |
-          # DVC is smart: if it sees the data from 'dvc pull', 
-          # it will skip 'ingest' and move to 'preprocess'
-          dvc repro
+          # Targeting 'train' skips the 'ingest' stage completely
+          dvc repro train
 
       - name: Push Updated Model & Metrics
         env:
           dvc_token: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          # Push any newly trained model to DagsHub
           dvc push -r origin
-          
-          # Push the updated dvc.lock back to GitHub
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git add dvc.lock models/metrics.json || echo "No changes to commit"
-          
-          # [skip ci] is mandatory to avoid infinite loops!
+          git add dvc.lock models/metrics.json || echo "No changes"
           git commit -m "🚀 Automated Model Update [skip ci]" || echo "No changes to commit"
           git push origin main
