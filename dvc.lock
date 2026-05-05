@@ -1,0 +1,91 @@
+schema: '2.0'
+stages:
+  ingest:
+    cmd: python src/data_ingestion.py
+    deps:
+    - path: src/data_ingestion.py
+      hash: md5
+      md5: 4118d60e5b338cf7a335633decb0d5a9
+      size: 577
+    outs:
+    - path: data/raw/
+      hash: md5
+      md5: 60d34e0ac98f99cc633e5a13ba4dcbc0.dir
+      size: 45350831
+      nfiles: 15
+  preprocess:
+    cmd: python src/preprocess.py
+    deps:
+    - path: data/raw/
+      hash: md5
+      md5: 60d34e0ac98f99cc633e5a13ba4dcbc0.dir
+      size: 45350831
+      nfiles: 15
+    - path: src/preprocess.py
+      hash: md5
+      md5: 493b3a9d5f8aef5a33cfba71be364f56
+      size: 1922
+    outs:
+    - path: data/processed/train_FD001_processed.csv
+      hash: md5
+      md5: 65f9670848e3dd6fb3fa677f3dc77aa0
+      size: 3488163
+  features:
+    cmd: python src/features.py
+    deps:
+    - path: data/processed/train_FD001_processed.csv
+      hash: md5
+      md5: 65f9670848e3dd6fb3fa677f3dc77aa0
+      size: 3488163
+    - path: src/features.py
+      hash: md5
+      md5: ed098750f0f077ab0a450dacd65db340
+      size: 1093
+    outs:
+    - path: data/processed/train_FD001_features.csv
+      hash: md5
+      md5: 682288358a000a7afdf82c4fbb18f2fc
+      size: 13729012
+  train:
+    cmd: python src/train.py
+    deps:
+    - path: data/processed/train_FD001_features.csv
+      hash: md5
+      md5: 682288358a000a7afdf82c4fbb18f2fc
+      size: 13729012
+    - path: src/train.py
+      hash: md5
+      md5: 2be310825c60abf896def301c4c5320d
+      size: 1893
+    params:
+      params.yaml:
+        train:
+          n_estimators: 200
+          learning_rate: 0.05
+          max_depth: 6
+          random_state: 42
+    outs:
+    - path: metrics.json
+      hash: md5
+      md5: 373da040b42c3b871db9249df00c5c5b
+      size: 55
+    - path: models/model_xgb.json
+      hash: md5
+      md5: 25e5f2577da4b085b5f19bb5e1ef8b7b
+      size: 1321294
+  visualize:
+    cmd: python src/visualization.py
+    deps:
+    - path: models/model_xgb.json
+      hash: md5
+      md5: 25e5f2577da4b085b5f19bb5e1ef8b7b
+      size: 1321294
+    - path: src/visualization.py
+      hash: md5
+      md5: 2644010f798a7b9b004935aba04efb15
+      size: 1256
+    outs:
+    - path: plots/engine_81_prediction.png
+      hash: md5
+      md5: 05edf1cfaf5130545a67d58a35021fb9
+      size: 52528
