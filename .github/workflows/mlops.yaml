@@ -1,16 +1,21 @@
 name: Full-MLOps-Pipeline
+
 on:
   push:
     branches: [ main ]
     paths:
-      - 'data/**'  # Trigger only when data files change
-      - 'src/**'   # Or when code changes
+      - 'data/**'
+      - 'src/**'
+      - 'params.yaml'
+
 jobs:
   train-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Important for pushing changes back to git
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -19,9 +24,9 @@ jobs:
 
       - name: Install DVC & Dependencies
         run: |
-          pip install dvc[s3] xgboost pandas scikit-learn matplotlib plotly pyyaml
+          pip install dvc dvc-s3 xgboost pandas scikit-learn matplotlib plotly pyyaml kaggle
 
-      - name: Pull Data from DagsHub
+      - name: Configure DVC Remote
         env:
           dvc_token: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
@@ -29,18 +34,29 @@ jobs:
           dvc remote modify origin --local auth basic
           dvc remote modify origin --local user SAIF-BT
           dvc remote modify origin --local password $dvc_token
+
+      - name: Pull Data from DagsHub
+        run: |
           dvc pull -r origin
 
       - name: Execute Pipeline (dvc repro)
-        run: dvc repro
+        run: |
+          # We use --pull to ensure it uses existing data from DagsHub 
+          # instead of trying to run 'ingest' (which needs Kaggle keys)
+          dvc repro
 
       - name: Push Updated Model & Metrics
         env:
           dvc_token: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
+          # Push data/models to DagsHub
           dvc push -r origin
+          
+          # Push the updated dvc.lock and metrics back to GitHub
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git add dvc.lock models/metrics.json
-          git commit -m "Automated Model Update [skip ci]" || echo "No changes to commit"
-          git push
+          git add dvc.lock models/metrics.json || echo "No changes to lock/metrics"
+          
+          # [skip ci] prevents the action from triggering itself in an infinite loop
+          git commit -m "🚀 Automated Model Update [skip ci]" || echo "No changes to commit"
+          git push origin main
