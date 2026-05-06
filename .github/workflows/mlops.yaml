@@ -1,5 +1,5 @@
 name: Full-MLOps-Pipeline
-
+ 
 on:
   push:
     branches: [ main ]
@@ -8,7 +8,7 @@ on:
       - 'src/**'
       - 'params.yaml'
       - '.github/workflows/mlops.yaml'
-
+ 
 jobs:
   train-and-deploy:
     runs-on: ubuntu-latest
@@ -17,46 +17,47 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
+ 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
-
-      - name: Install All Dependencies
+ 
+      - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          # We install kaggle here so the Python script doesn't crash on 'import kaggle'
-          pip install dvc dvc-s3 xgboost pandas scikit-learn matplotlib plotly pyyaml kaggle
-
+          pip install dvc dvc-s3 xgboost pandas scikit-learn matplotlib \
+                      plotly pyyaml kaggle mlflow scipy dagshub
+ 
       - name: Configure DVC Remote
         env:
-          dvc_token: ${{ secrets.DAGSHUB_TOKEN }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
           dvc remote add origin https://dagshub.com/SAIF-BT/Predictive_maintenance.dvc || true
-          dvc remote modify origin --local auth basic
-          dvc remote modify origin --local user SAIF-BT
-          dvc remote modify origin --local password $dvc_token
-
+          dvc remote modify origin auth basic
+          dvc remote modify origin user SAIF-BT
+          dvc remote modify origin password $DAGSHUB_TOKEN
+ 
       - name: Pull Data from DagsHub
         run: |
-          # This brings in the CSV files you already uploaded manually
           dvc pull -r origin
-
-      - name: Execute Pipeline (dvc repro)
-        run: |
-          # 'dvc repro train --pull' tells DVC: 
-          # "Check if you can pull the result of the ingestion from DagsHub 
-          # instead of running the script that needs Kaggle credentials."
-          dvc repro train --pull
-
-      - name: Push Updated Model & Metrics
+ 
+      - name: Run Full DVC Pipeline
         env:
-          dvc_token: ${{ secrets.DAGSHUB_TOKEN }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          dvc repro
+ 
+      - name: Push Model & Artifacts to DagsHub
+        env:
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
           dvc push -r origin
+ 
+      - name: Commit Updated DVC Lock & Metrics
+        run: |
           git config --global user.name "GitHub Action"
           git config --global user.email "action@github.com"
-          git add dvc.lock models/metrics.json || echo "No changes"
-          git commit -m "🚀 Automated Model Update [skip ci]" || echo "No changes to commit"
+          git add dvc.lock metrics.json || true
+          git commit -m "🚀 Automated Model Update [skip ci]" || echo "Nothing to commit"
           git push origin main
