@@ -1,3 +1,5 @@
+from dvc_setup import download_model
+download_model()
 import streamlit as st
 import pandas as pd
 import xgboost as xgb
