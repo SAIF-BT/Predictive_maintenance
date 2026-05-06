@@ -26,7 +26,7 @@ jobs:
       - name: Install All Dependencies
         run: |
           python -m pip install --upgrade pip
-          # We add kaggle here specifically to stop the ModuleNotFoundError
+          # We install kaggle here so the Python script doesn't crash on 'import kaggle'
           pip install dvc dvc-s3 xgboost pandas scikit-learn matplotlib plotly pyyaml kaggle
 
       - name: Configure DVC Remote
@@ -40,12 +40,14 @@ jobs:
 
       - name: Pull Data from DagsHub
         run: |
+          # This brings in the CSV files you already uploaded manually
           dvc pull -r origin
 
       - name: Execute Pipeline (dvc repro)
         run: |
-          # We use --pull to get missing data from DagsHub 
-          # instead of running the ingest script
+          # 'dvc repro train --pull' tells DVC: 
+          # "Check if you can pull the result of the ingestion from DagsHub 
+          # instead of running the script that needs Kaggle credentials."
           dvc repro train --pull
 
       - name: Push Updated Model & Metrics
