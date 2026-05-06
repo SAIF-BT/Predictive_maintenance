@@ -26,6 +26,7 @@ jobs:
       - name: Install All Dependencies
         run: |
           python -m pip install --upgrade pip
+          # We add kaggle here specifically to stop the ModuleNotFoundError
           pip install dvc dvc-s3 xgboost pandas scikit-learn matplotlib plotly pyyaml kaggle
 
       - name: Configure DVC Remote
@@ -39,13 +40,12 @@ jobs:
 
       - name: Pull Data from DagsHub
         run: |
-          # Pulling specifically ensures the data for the 'train' stage is present
           dvc pull -r origin
 
       - name: Execute Pipeline (dvc repro)
         run: |
-          # --pull ensures that even if a dependency is missing, 
-          # DVC tries to pull it from the remote rather than running the script.
+          # We use --pull to get missing data from DagsHub 
+          # instead of running the ingest script
           dvc repro train --pull
 
       - name: Push Updated Model & Metrics
