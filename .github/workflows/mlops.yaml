@@ -17,23 +17,29 @@ jobs:
 
       - name: Install All Dependencies
         run: |
-          pip install dvc dvc-s3 xgboost pandas scikit-learn matplotlib plotly pyyaml kaggle mlflow dagshub
+          python -m pip install --upgrade pip
+          # 1. Force install 'conflict' libraries to stop the infinite loop
+          pip install boto3==1.34.0 botocore==1.34.0 rfc3986==1.5.0 commonmark==0.9.1
+          # 2. Install core MLOps tools
+          pip install dvc dvc-s3 xgboost pandas scikit-learn mlflow
+          # 3. Install remaining libraries without triggering new dependency checks
+          pip install kaggle dagshub --no-deps
 
       - name: Execute Pipeline (dvc repro)
         env:
-          # This connects your CI/CD to MLflow on DagsHub
+          # This connects your GitHub Action to DagsHub MLflow
           MLFLOW_TRACKING_URI: https://dagshub.com/SAIF-BT/Predictive_maintenance.mlflow
           MLFLOW_TRACKING_USERNAME: SAIF-BT
           MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
         run: |
-          # Configure DVC Remote
+          # Configure DVC for the runner
           dvc remote add origin https://dagshub.com/SAIF-BT/Predictive_maintenance.dvc --force
           dvc remote modify origin --local auth basic
           dvc remote modify origin --local user SAIF-BT
           dvc remote modify origin --local password ${{ secrets.DAGSHUB_TOKEN }}
           
-          # Pull existing data to avoid running Kaggle Ingestion
+          # Pull existing data (bypasses Kaggle ingestion)
           dvc pull -r origin
           
-          # Reproduce the pipeline starting FROM the training stage
+          # Run the pipeline starting from training
           dvc repro train
