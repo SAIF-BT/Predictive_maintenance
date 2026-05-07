@@ -60,7 +60,7 @@ jobs:
           dvc remote modify origin password "${{ secrets.DAGSHUB_TOKEN }}"
 
       - name: Restore DVC cache
-        run: dvc pull -r origin --run-cache || true
+        run: dvc pull -r origin || true
 
       - name: Run full pipeline
         run: dvc repro
