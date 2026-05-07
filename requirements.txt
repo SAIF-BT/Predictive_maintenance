@@ -10,10 +10,5 @@ pyyaml
 mlflow
 dagshub
 dvc
-evidently
-onnx
-onnxruntime
+dvc-s3
 kaggle
-torch
-torchvision
-torchaudio
