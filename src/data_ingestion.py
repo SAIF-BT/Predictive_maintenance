@@ -1,11 +1,11 @@
 import os
-import kaggle
 
 def download_and_extract():
     dataset = 'behrad3d/nasa-cmaps'
     raw_data_path = 'data/raw'
 
-    # Write kaggle.json from the KAGGLE_API_TOKEN environment variable
+    # Write kaggle.json BEFORE importing kaggle
+    # because kaggle authenticates on import
     kaggle_dir = os.path.expanduser('~/.config/kaggle')
     kaggle_json = os.path.join(kaggle_dir, 'kaggle.json')
 
@@ -19,8 +19,9 @@ def download_and_extract():
         os.chmod(kaggle_json, 0o600)
         print("Kaggle credentials written from token.")
 
+    # Import AFTER credentials are in place
+    import kaggle
     print(f"Fetching dataset: {dataset}...")
-    kaggle.api.authenticate()
     kaggle.api.dataset_download_files(dataset, path=raw_data_path, unzip=True)
     print(f"Done! Files in: {raw_data_path}")
     print(f"Files found: {os.listdir(raw_data_path)}")
