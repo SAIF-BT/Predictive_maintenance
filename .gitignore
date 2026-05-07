@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.env
+venv/
+.venv/
+
+# DVC - never commit raw data or models directly
+/data/raw/
+/data/processed/
+/models/
+/plots/
+
+# DVC local config (contains passwords)
+.dvc/config.local
+.dvc/tmp/
+.dvc/cache/
+
+# Credentials
+.kaggle/
+
+# IDE
+.vscode/
+.idea/
+*.DS_Store
