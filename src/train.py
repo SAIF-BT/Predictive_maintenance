@@ -1,7 +1,8 @@
 import pandas as pd
 import xgboost as xgb
 import yaml
-from sklearn.metrics import root_mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error
+import numpy as np
 import os
 import json
 
@@ -51,7 +52,7 @@ def train_model():
 
     # 5. Evaluate
     preds = model.predict(X_val)
-    rmse = float(root_mean_squared_error(y_val, preds))
+    rmse = float(np.sqrt(mean_squared_error(y_val, preds)))
     mae = float(mean_absolute_error(y_val, preds))
 
     # 6. Save Artifacts
