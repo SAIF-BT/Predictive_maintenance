@@ -2,36 +2,58 @@ name: ML Pipeline CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   train-and-report:
     runs-on: ubuntu-latest
+
+    env:
+      KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+      MLFLOW_TRACKING_URI: https://dagshub.com/SAIF-BT/Predictive_maintenance.mlflow
+      MLFLOW_TRACKING_USERNAME: SAIF-BT
+      MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+
     steps:
       - uses: actions/checkout@v3
-      
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      - name: Install All Dependencies
+      - name: Cache pip dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          # Force clean versions to avoid metadata and backtracking bugs
-          pip install uvicorn>=0.15.0 boto3==1.34.0 botocore==1.34.0 rfc3986==1.5.0 commonmark==0.9.1
-          pip install dvc dvc-s3 xgboost pandas scikit-learn mlflow
-          pip install kaggle dagshub --no-deps
+          pip install dvc dvc-s3 xgboost pandas scikit-learn mlflow \
+                      kaggle dagshub pyyaml matplotlib scipy streamlit plotly
 
-      - name: Execute Pipeline (dvc repro)
-        env:
-          MLFLOW_TRACKING_URI: https://dagshub.com/SAIF-BT/Predictive_maintenance.mlflow
-          MLFLOW_TRACKING_USERNAME: SAIF-BT
-          MLFLOW_TRACKING_PASSWORD: ${{ secrets.DAGSHUB_TOKEN }}
+      - name: Configure DVC remote
         run: |
-          dvc remote add origin https://dagshub.com/SAIF-BT/Predictive_maintenance.dvc --force
-          dvc remote modify origin --local auth basic
-          dvc remote modify origin --local user SAIF-BT
-          dvc remote modify origin --local password ${{ secrets.DAGSHUB_TOKEN }}
-          dvc pull -r origin
-          dvc repro train
+          dvc remote add -d origin \
+            https://dagshub.com/SAIF-BT/Predictive_maintenance.dvc --force
+          dvc remote modify origin auth basic
+          dvc remote modify origin user SAIF-BT
+          dvc remote modify origin password "${{ secrets.DAGSHUB_TOKEN }}"
+
+      - name: Restore DVC cache
+        run: dvc pull -r origin --run-cache || true
+
+      - name: Run full pipeline
+        run: dvc repro
+
+      - name: Push artifacts
+        run: dvc push -r origin
+
+      - name: Report metrics
+        run: |
+          echo "### Model Metrics" >> $GITHUB_STEP_SUMMARY
+          cat metrics.json >> $GITHUB_STEP_SUMMARY
+          dvc metrics show
