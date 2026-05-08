@@ -5,6 +5,7 @@ stages:
     - src/data_ingestion.py
     outs:
     - data/raw/
+
   preprocess:
     cmd: python src/preprocess.py
     deps:
@@ -12,8 +13,10 @@ stages:
     - src/preprocess.py
     outs:
     - data/processed/train_FD002_processed.csv
+    - models/scalers.pkl          # ← added
     params:
     - data.dataset
+
   features:
     cmd: python src/features.py
     deps:
@@ -23,6 +26,7 @@ stages:
     - data/processed/train_FD002_features.csv
     params:
     - data.dataset
+
   train:
     cmd: python src/train.py
     deps:
@@ -36,6 +40,7 @@ stages:
     params:
     - data.dataset
     - train
+
   visualize:
     cmd: python src/visualization.py
     deps:
