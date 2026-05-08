@@ -53,7 +53,7 @@ def predict_single_engine(unit_id=1):
     print(f"Predicted RUL  : {prediction:.1f} cycles")
     print("---------------------------------------------")
 
-    return prediction                              # ✅ return value for reuse
+    return prediction                         
 
 if __name__ == "__main__":
     predict_single_engine()
