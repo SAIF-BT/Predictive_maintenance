@@ -65,8 +65,19 @@ jobs:
       - name: Restore DVC cache
         run: dvc pull -r origin || true
 
-      - name: Run full pipeline               
+      - name: Run full pipeline
         run: dvc repro
+
+      - name: Commit updated dvc.lock
+        run: |
+          git config user.email "github-actions@github.com"
+          git config user.name "GitHub Actions"
+          git add dvc.lock
+          git diff --staged --quiet || git commit -m "ci: update dvc.lock after repro"
+          git push || true
+
+      - name: Push artifacts
+        run: dvc push -r origin
 
       - name: Push artifacts                    
         run: dvc push -r origin
