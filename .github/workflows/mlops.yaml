@@ -4,14 +4,14 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '0 6 * * 1'    # every Monday at 6am UTC automatically
-  workflow_dispatch:         # also lets you trigger manually from GitHub UI
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
 
 jobs:
   train-and-report:
     runs-on: ubuntu-latest
 
-    env:                                              
+    env:
       KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
       MLFLOW_TRACKING_URI: https://dagshub.com/SAIF-BT/Predictive_maintenance.mlflow
       MLFLOW_TRACKING_USERNAME: SAIF-BT
@@ -19,13 +19,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}  # ✅ allows git push back
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      - name: Cache pip dependencies             
+      - name: Cache pip dependencies
         uses: actions/cache@v3
         with:
           path: ~/.cache/pip
@@ -68,7 +70,7 @@ jobs:
       - name: Run full pipeline
         run: dvc repro
 
-      - name: Commit updated dvc.lock
+      - name: Commit updated dvc.lock       
         run: |
           git config user.email "github-actions@github.com"
           git config user.name "GitHub Actions"
@@ -79,10 +81,7 @@ jobs:
       - name: Push artifacts
         run: dvc push -r origin
 
-      - name: Push artifacts                    
-        run: dvc push -r origin
-
-      - name: Report metrics                  
+      - name: Report metrics
         run: |
           echo "### Model Metrics" >> $GITHUB_STEP_SUMMARY
           cat metrics.json >> $GITHUB_STEP_SUMMARY
